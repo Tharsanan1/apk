@@ -34,7 +34,7 @@ var ResourceScopes = suite.IntegrationTest{
 	Description: "Tests resource with scopes",
 	Manifests:   []string{"tests/resource-scopes.yaml"},
 	Test: func(t *testing.T, suite *suite.IntegrationTestSuite) {
-		ns := "gateway-integration-test-infra"
+		ns := "apk"
 		gwAddr := "resource-scopes.test.gw.wso2.com:9095"
 
 		tokenWithoutScopes := http.GetTestToken(t)

@@ -34,7 +34,7 @@ var APIWithoutBackendBasePath = suite.IntegrationTest{
 	Description: "An API without a backend base path",
 	Manifests:   []string{"tests/api-without-backend-base-path.yaml"},
 	Test: func(t *testing.T, suite *suite.IntegrationTestSuite) {
-		ns := "gateway-integration-test-infra"
+		ns := "apk"
 		gwAddr := "no-base-path.test.gw.wso2.com:9095"
 		token := http.GetTestToken(t)
 

@@ -34,7 +34,7 @@ var APIWithOperationalPolicy = suite.IntegrationTest{
 	Description: "An API with operatinal policy",
 	Manifests:   []string{"tests/api-with-operational-policy.yaml"},
 	Test: func(t *testing.T, suite *suite.IntegrationTestSuite) {
-		ns := "gateway-integration-test-infra"
+		ns := "apk"
 		gwAddr := "backend-base-path.test.gw.wso2.com:9095"
 		token := http.GetTestToken(t)
 

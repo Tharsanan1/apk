@@ -34,7 +34,7 @@ var APIWithBackendBasePath = suite.IntegrationTest{
 	Description: "An API with a backend base path should be able to route requests to the backend",
 	Manifests:   []string{"tests/api-with-backend-base-path.yaml"},
 	Test: func(t *testing.T, suite *suite.IntegrationTestSuite) {
-		ns := "gateway-integration-test-infra"
+		ns := "apk"
 		gwAddr := "backend-base-path.test.gw.wso2.com:9095"
 		token := http.GetTestToken(t)
 

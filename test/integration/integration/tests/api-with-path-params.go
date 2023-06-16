@@ -34,7 +34,7 @@ var APIWithPathParams = suite.IntegrationTest{
 	Description: "An API with path param request is tested using regex path match",
 	Manifests:   []string{"tests/api-with-path-params.yaml"},
 	Test: func(t *testing.T, suite *suite.IntegrationTestSuite) {
-		ns := "gateway-integration-test-infra"
+		ns := "apk"
 		gwAddr := "path-param-api.test.gw.wso2.com:9095"
 		token := http.GetTestToken(t)
 

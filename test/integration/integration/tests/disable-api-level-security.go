@@ -34,7 +34,7 @@ var DisableAPISecurity = suite.IntegrationTest{
 	Description: "Tests API with disabled security",
 	Manifests:   []string{"tests/disable-api-level-security.yaml"},
 	Test: func(t *testing.T, suite *suite.IntegrationTestSuite) {
-		ns := "gateway-integration-test-infra"
+		ns := "apk"
 		gwAddr := "disable-api-security.test.gw.wso2.com:9095"
 
 		testCases := []http.ExpectedResponse{

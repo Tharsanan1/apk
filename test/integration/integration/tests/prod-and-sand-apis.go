@@ -34,7 +34,7 @@ var ProdAndSandAPIs = suite.IntegrationTest{
 	Description: "Tests API with disabled security",
 	Manifests:   []string{"tests/prod-and-sand-apis.yaml"},
 	Test: func(t *testing.T, suite *suite.IntegrationTestSuite) {
-		ns := "gateway-integration-test-infra"
+		ns := "apk"
 		gwAddr1 := "prod-api.test.gw.wso2.com:9095"
 		gwAddr2 := "sand-api.test.gw.wso2.com:9095"
 		token := http.GetTestToken(t)

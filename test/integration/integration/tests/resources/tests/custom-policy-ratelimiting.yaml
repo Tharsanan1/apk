@@ -17,7 +17,7 @@ apiVersion: dp.wso2.com/v1alpha1
 kind: RateLimitPolicy
 metadata:
   name: http-bin-ratelimit-usergroup
-  namespace: gateway-integration-test-infra
+  namespace: apk
 spec:
   override:
     type: Custom
@@ -37,12 +37,12 @@ apiVersion: dp.wso2.com/v1alpha1
 kind: APIPolicy
 metadata:
   name: interceptor-api-policy-api-level
-  namespace: gateway-integration-test-infra
+  namespace: apk
 spec:
   override:
     requestInterceptors:
     - name: request-ratelimit-interceptor-api-level
-      namespace: gateway-integration-test-infra
+      namespace: apk
   targetRef:
     group: gateway.networking.k8s.io
     kind: API
@@ -52,7 +52,7 @@ apiVersion: dp.wso2.com/v1alpha1
 kind: InterceptorService
 metadata:
   name: request-ratelimit-interceptor-api-level
-  namespace: gateway-integration-test-infra
+  namespace: apk
 spec:
   backendRef:
     name: interceptor-backend-v1
@@ -65,7 +65,7 @@ apiVersion: dp.wso2.com/v1alpha1
 kind: API
 metadata:
   name: http-bin-api-basic
-  namespace: gateway-integration-test-infra
+  namespace: apk
 spec:
   apiDisplayName: http-bin-api-basic
   apiType: REST
@@ -81,7 +81,7 @@ apiVersion: gateway.networking.k8s.io/v1beta1
 kind: HTTPRoute
 metadata:
   name: prod-http-route-http-bin-api-basic
-  namespace: gateway-integration-test-infra
+  namespace: apk
 spec:
   hostnames:
     - prod.gw.wso2.com

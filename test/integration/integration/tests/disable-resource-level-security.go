@@ -34,7 +34,7 @@ var DisableResourceSecurity = suite.IntegrationTest{
 	Description: "Tests API with disabled security",
 	Manifests:   []string{"tests/disable-resource-level-security.yaml"},
 	Test: func(t *testing.T, suite *suite.IntegrationTestSuite) {
-		ns := "gateway-integration-test-infra"
+		ns := "apk"
 		gwAddr := "disable-resource-security.test.gw.wso2.com:9095"
 
 		testCases := []http.ExpectedResponse{

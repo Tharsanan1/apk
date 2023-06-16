@@ -34,7 +34,7 @@ var TrailingSlash = suite.IntegrationTest{
 	Description: "Invoking API with and without trailing slash",
 	Manifests:   []string{"tests/trailing-slash.yaml"},
 	Test: func(t *testing.T, suite *suite.IntegrationTestSuite) {
-		ns := "gateway-integration-test-infra"
+		ns := "apk"
 		gwAddr := "trailing-slash.test.gw.wso2.com:9095"
 		token := http.GetTestToken(t, gwAddr)
 

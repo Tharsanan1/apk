@@ -30,7 +30,7 @@ var APIWithResoponseHeaderModify = suite.IntegrationTest{
 	Description: "An API with response header modify",
 	Manifests:   []string{"tests/api-with-response-header-modify.yaml"},
 	Test: func(t *testing.T, suite *suite.IntegrationTestSuite) {
-		ns := "gateway-integration-test-infra"
+		ns := "apk"
 		gwAddr := "gateway-integration-test-infra.test.gw.wso2.com:9095"
 		token := http.GetTestToken(t)
 

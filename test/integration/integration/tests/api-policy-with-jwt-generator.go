@@ -65,7 +65,7 @@ var BackendJWTGenerationPolicy = suite.IntegrationTest{
 	Description: "Tests API with backend JWT generation policy",
 	Manifests:   []string{"tests/api-policy-with-jwt-generator.yaml"},
 	Test: func(t *testing.T, suite *suite.IntegrationTestSuite) {
-		ns := "gateway-integration-test-infra"
+		ns := "apk"
 		gwAddr := "api-policy-with-jwt-generator.test.gw.wso2.com:9095"
 		token := http.GetTestToken(t)
 

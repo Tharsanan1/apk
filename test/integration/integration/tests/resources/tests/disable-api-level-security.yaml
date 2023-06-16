@@ -18,7 +18,7 @@ apiVersion: dp.wso2.com/v1alpha1
 kind: API
 metadata:
   name: disable-api-security
-  namespace: gateway-integration-test-infra
+  namespace: apk
 spec:
   apiDisplayName: Backend with no basepath
   apiType: REST
@@ -34,13 +34,13 @@ apiVersion: gateway.networking.k8s.io/v1beta1
 kind: HTTPRoute
 metadata:
   name: disable-api-security-httproute
-  namespace: gateway-integration-test-infra
+  namespace: apk
 spec:
   parentRefs:
   - group: gateway.networking.k8s.io
     kind: Gateway
     name: default
-    namespace: apk-integration-test
+    namespace: apk
     sectionName: httpslistener
   hostnames:
   - disable-api-security.test.gw.wso2.com
@@ -80,7 +80,7 @@ apiVersion: dp.wso2.com/v1alpha1
 kind: Authentication
 metadata:
   name: disable-api-security
-  namespace: gateway-integration-test-infra
+  namespace: apk
 spec:
   override:
     type: ext
@@ -97,5 +97,5 @@ spec:
   targetRef:
     group: gateway.networking.k8s.io
     kind: API
-    namespace: gateway-integration-test-infra
+    namespace: apk
     name: disable-api-security

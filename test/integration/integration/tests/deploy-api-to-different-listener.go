@@ -34,7 +34,7 @@ var APIDifferentListener = suite.IntegrationTest{
 	Description: "An API is deployed to a different listener other than default gateway listener",
 	Manifests:   []string{"tests/api-different-listener.yaml"},
 	Test: func(t *testing.T, suite *suite.IntegrationTestSuite) {
-		ns := "gateway-integration-test-infra"
+		ns := "apk"
 		gwAddr := "api.am.wso2.com:9095"
 		token := http.GetTestToken(t)
 

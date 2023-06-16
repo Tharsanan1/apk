@@ -18,7 +18,7 @@ apiVersion: dp.wso2.com/v1alpha1
 kind: API
 metadata:
   name: cors-policy-api
-  namespace: gateway-integration-test-infra
+  namespace: apk
 spec:
   apiDisplayName: API with CORS Policy
   apiType: REST
@@ -34,7 +34,7 @@ apiVersion: gateway.networking.k8s.io/v1beta1
 kind: HTTPRoute
 metadata:
   name: cors-policy-httproute
-  namespace: gateway-integration-test-infra
+  namespace: apk
 spec:
   hostnames:
   - cors-policy.test.gw.wso2.com
@@ -42,7 +42,7 @@ spec:
   - group: gateway.networking.k8s.io
     kind: Gateway
     name: default
-    namespace: apk-integration-test
+    namespace: apk
     sectionName: httpslistener
   rules:
   - matches:
@@ -64,7 +64,7 @@ apiVersion: dp.wso2.com/v1alpha1
 kind: APIPolicy
 metadata:
   name: cors-policy
-  namespace: gateway-integration-test-infra
+  namespace: apk
 spec:
   override:
     cORSPolicy:

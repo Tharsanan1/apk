@@ -34,7 +34,7 @@ var ALLHTTPMethodsForWildCard = suite.IntegrationTest{
 	Description: "Tests an API with wild card path using path prefix match and unspecified HTTP method",
 	Manifests:   []string{"tests/all-http-methods-for-wildcard.yaml"},
 	Test: func(t *testing.T, suite *suite.IntegrationTestSuite) {
-		ns := "gateway-integration-test-infra"
+		ns := "apk"
 		gwAddr := "all-http-methods-for-wildcard.test.gw.wso2.com:9095"
 		token := http.GetTestToken(t)
 
