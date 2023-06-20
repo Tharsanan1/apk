@@ -237,7 +237,7 @@ metadata:
   namespace: apk
 spec:
   services:
-  - host: infra-backend-v1.gateway-integration-test-infra
+  - host: infra-backend-v1.apk
     port: 8080
 ---
 apiVersion: dp.wso2.com/v1alpha1
@@ -247,7 +247,7 @@ metadata:
   namespace: apk
 spec:
   services:
-  - host: infra-backend-v2.gateway-integration-test-infra
+  - host: infra-backend-v2.apk
     port: 8080
 ---
 # TODO (Amila): Uncomment once AKS test runner is enabled
@@ -338,7 +338,7 @@ spec:
     certificate:
       secretRef:
         key: "mg.pem"
-        name: "apk-test-setup-wso2-apk-enforcer-keystore-secret"
+        name: "apk-test-wso2-apk-enforcer-keystore-secret"
   targetRef:
     group: gateway.networking.k8s.io
     kind: Gateway
