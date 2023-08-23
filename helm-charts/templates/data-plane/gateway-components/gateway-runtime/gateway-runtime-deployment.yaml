@@ -91,7 +91,7 @@ spec:
             - name: analytics_authURL
               value: "https://localhost:8080"
             - name: JAVA_OPTS
-              value: -Dhttpclient.hostnameVerifier=AllowAll -Xms512m -Xmx512m -XX:MaxRAMFraction=2
+              value: -Dhttpclient.hostnameVerifier=AllowAll -Xms1500m -Xmx1500m -XX:MaxRAMFraction=2
           volumeMounts:
             - name: enforcer-keystore-secret-volume
               mountPath: /home/wso2/security/keystore/enforcer.key
@@ -228,7 +228,7 @@ spec:
             - name: CONCURRENCY
               value: "2"
             - name: TRAILING_ARGS
-              value: --component-log-level http:debug,http2:debug,conn_handler:debug,ext_authz:trace
+              value: --component-log-level http:warn,http2:warn,conn_handler:warn,ext_authz:warn
           volumeMounts:
             - name: router-keystore-secret-volume
               mountPath: /home/wso2/security/keystore/router.key

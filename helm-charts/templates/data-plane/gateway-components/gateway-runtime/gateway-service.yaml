@@ -20,6 +20,9 @@ kind: Service
 metadata:
   name: {{ template "apk-helm.resource.prefix" . }}-gateway-service
   namespace : {{ .Release.Namespace }}
+  annotations: 
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "default"
 spec:
   type: LoadBalancer
   # label keys and values that must match in order to receive traffic for this service

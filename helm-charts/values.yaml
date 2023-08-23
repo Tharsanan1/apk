@@ -93,11 +93,11 @@ wso2:
         deployment:
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "100m"
+              memory: "500Mi"
+              cpu: "500m"
             limits:
-              memory: "1028Mi"
-              cpu: "1000m"
+              memory: "500Mi"
+              cpu: "500m"
           readinessProbe:
             initialDelaySeconds: 20
             periodSeconds: 20
@@ -181,11 +181,11 @@ wso2:
           router:
             resources:
               requests:
-                memory: "128Mi"
-                cpu: "100m"
+                memory: "1000Mi"
+                cpu: "2000m"
               limits:
-                memory: "1028Mi"
-                cpu: "1000m"
+                memory: "1000Mi"
+                cpu: "2000m"
             readinessProbe:
               initialDelaySeconds: 20
               periodSeconds: 20
@@ -210,10 +210,10 @@ wso2:
           enforcer:
             resources:
               requests:
-                memory: "128Mi"
-                cpu: "100m"
+                memory: "2000Mi"
+                cpu: "1000m"
               limits:
-                memory: "1028Mi"
+                memory: "2000Mi"
                 cpu: "1000m"
             readinessProbe:
               initialDelaySeconds: 20
@@ -225,7 +225,7 @@ wso2:
               failureThreshold: 5
             strategy: RollingUpdate
             imagePullPolicy: Always
-            image: wso2/enforcer:1.0.0-beta
+            image: docker.io/tharsanan/enforcer:jdk
             security:
               sslHostname: "enforcer"
 #            logging:
