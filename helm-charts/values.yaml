@@ -225,7 +225,7 @@ wso2:
               failureThreshold: 5
             strategy: RollingUpdate
             imagePullPolicy: Always
-            image: docker.io/tharsanan/enforcer:jdk
+            image: wso2/enforcer:1.0.0-beta
             security:
               sslHostname: "enforcer"
 #            logging:
