@@ -63,7 +63,7 @@ spec:
             - containerPort: 9092
               protocol: "TCP"
 {{ include "apk-helm.deployment.resources" .Values.wso2.apk.dp.gatewayRuntime.deployment.enforcer.resources | indent 10 }}
-{{ include "apk-helm.deployment.env" .Values.wso2.apk.dp.gatewayRuntime.deployment.enforcer.env | indent 10 }}
+          env:
             - name: ADAPTER_HOST_NAME
               value: {{ template "apk-helm.resource.prefix" . }}-adapter-service.{{ .Release.Namespace }}.svc
             - name: ADAPTER_HOST
@@ -92,6 +92,7 @@ spec:
               value: "https://localhost:8080"
             - name: JAVA_OPTS
               value: -Dhttpclient.hostnameVerifier=AllowAll -Xms512m -Xmx512m -XX:MaxRAMFraction=2
+{{ include "apk-helm.deployment.env" .Values.wso2.apk.dp.gatewayRuntime.deployment.enforcer.env | indent 12 }}
           volumeMounts:
             - name: enforcer-keystore-secret-volume
               mountPath: /home/wso2/security/keystore/enforcer.key
@@ -192,7 +193,7 @@ spec:
             - containerPort: 9000
               protocol: "TCP"
 {{ include "apk-helm.deployment.resources" .Values.wso2.apk.dp.gatewayRuntime.deployment.router.resources | indent 10 }}
-{{ include "apk-helm.deployment.env" .Values.wso2.apk.dp.gatewayRuntime.deployment.router.env | indent 10 }}
+          env:
             - name: ADAPTER_HOST_NAME
               value: {{ template "apk-helm.resource.prefix" . }}-adapter-service.{{ .Release.Namespace }}.svc
             - name: ADAPTER_HOST
@@ -229,6 +230,7 @@ spec:
               value: "2"
             - name: TRAILING_ARGS
               value: --component-log-level http:debug,http2:debug,conn_handler:debug,ext_authz:trace
+{{ include "apk-helm.deployment.env" .Values.wso2.apk.dp.gatewayRuntime.deployment.router.env | indent 12 }}
           volumeMounts:
             - name: router-keystore-secret-volume
               mountPath: /home/wso2/security/keystore/router.key

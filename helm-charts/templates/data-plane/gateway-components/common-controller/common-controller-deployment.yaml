@@ -41,17 +41,18 @@ spec:
             - containerPort: 18005
               protocol: TCP
 {{ include "apk-helm.deployment.resources" .Values.wso2.apk.dp.commonController.deployment.resources | indent 10 }}
-{{ include "apk-helm.deployment.env" .Values.wso2.apk.dp.commonController.deployment.env | indent 10 }}
-          - name: OPERATOR_POD_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-          - name: COMMON_CONTROLLER_PRIVATE_KEY_PATH
-            value: /home/wso2/security/keystore/commoncontroller.key
-          - name: COMMON_CONTROLLER_PUBLIC_CERT_PATH
-            value: /home/wso2/security/keystore/commoncontroller.crt
-          - name: COMMON_CONTROLLER_SERVER_NAME
-            value: {{ template "apk-helm.resource.prefix" . }}-common-controller-service.{{ .Release.Namespace }}.svc
+          env:
+            - name: OPERATOR_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: COMMON_CONTROLLER_PRIVATE_KEY_PATH
+              value: /home/wso2/security/keystore/commoncontroller.key
+            - name: COMMON_CONTROLLER_PUBLIC_CERT_PATH
+              value: /home/wso2/security/keystore/commoncontroller.crt
+            - name: COMMON_CONTROLLER_SERVER_NAME
+              value: {{ template "apk-helm.resource.prefix" . }}-common-controller-service.{{ .Release.Namespace }}.svc
+{{ include "apk-helm.deployment.env" .Values.wso2.apk.dp.commonController.deployment.env | indent 12 }}
           volumeMounts:
             - name: common-controller-keystore-secret-volume
               mountPath: /home/wso2/security/keystore/commoncontroller.key

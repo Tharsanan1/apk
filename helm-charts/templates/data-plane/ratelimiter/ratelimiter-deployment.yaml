@@ -46,7 +46,7 @@ spec:
             - containerPort: 6070
               protocol: "TCP"
 {{ include "apk-helm.deployment.resources" .Values.wso2.apk.dp.ratelimiter.deployment.resources | indent 10 }}
-{{ include "apk-helm.deployment.env" .Values.wso2.apk.dp.ratelimiter.deployment.env | indent 10 }}
+          env:
             - name: HOST
               value: "0.0.0.0"
             - name: PORT
@@ -141,6 +141,7 @@ spec:
               value: "http://{{ .Values.wso2.apk.dp.gatewayRuntime.tracing.configProperties.host}}:{{ .Values.wso2.apk.dp.gatewayRuntime.tracing.configProperties.port}}"
             {{ end }}
             {{ end }}
+{{ include "apk-helm.deployment.env" .Values.wso2.apk.dp.ratelimiter.deployment.env | indent 12 }}
           volumeMounts:
             - name: ratelimiter-keystore-secret-volume
               mountPath: /home/wso2/security/keystore/ratelimiter.key

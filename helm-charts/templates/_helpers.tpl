@@ -68,11 +68,10 @@ Common prefix prepended to Kubernetes resources of this chart
 
 
 {{- define "apk-helm.deployment.env" -}}
-env:
 {{- if . -}}
 {{- range $key, $val := . }}
-  - name: {{ $key }}
-    value: {{ quote  $val }}
+- name: {{ $key }}
+  value: {{ quote  $val }}
 {{- end }}
 {{- end -}}
 {{- end -}}
