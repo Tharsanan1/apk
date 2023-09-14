@@ -1,0 +1,68 @@
+{{- if .Values.wso2.apk.podMetrics.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "apk-helm.resource.prefix" . }}-pod-metrics
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "apk-helm.resource.prefix" . }}-pod-metrics-archive
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ template "apk-helm.resource.prefix" . }}-pod-metrics-retrieve-job
+  namespace: {{ .Release.Namespace }}
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: {{ .Values.wso2.apk.auth.serviceAccountName }}
+          containers:
+          - name: kubectl-container
+            image: tharsanan/pod-metrics-collector:1.0.2
+            args:
+            - "retrieve"
+            env:
+              - name: APK_RELEASE_NAME
+                value: {{ .Release.Name }}
+              - name: APK_RESOURCE_PREFIX
+                value: {{ template "apk-helm.resource.prefix" . }}
+              - name: APK_RELEASE_NAMESPACE
+                value: {{ .Release.Namespace }}
+              - name: POD_METRICS_CONFIGMAP
+                value: {{ template "apk-helm.resource.prefix" . }}-pod-metrics
+          restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ template "apk-helm.resource.prefix" . }}-pod-metrics-archive-job
+  namespace: {{ .Release.Namespace }}
+spec:
+  schedule: "*/3 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: {{ .Values.wso2.apk.auth.serviceAccountName }}
+          containers:
+          - name: kubectl-container
+            image: tharsanan/pod-metrics-collector:1.0.2
+            args:
+            - "archive"
+            env:
+              - name: APK_RELEASE_NAMESPACE
+                value: {{ .Release.Namespace }}
+              - name: POD_METRICS_CONFIGMAP
+                value: {{ template "apk-helm.resource.prefix" . }}-pod-metrics
+              - name: POD_METRICS_ARCHIVE_CONFIGMAP
+                value: {{ template "apk-helm.resource.prefix" . }}-pod-metrics-archive
+          restartPolicy: OnFailure
+{{- end -}}
