@@ -195,11 +195,11 @@ wso2:
         deployment:
           resources:
             requests:
-              memory: "64Mi"
-              cpu: "50m"
+              memory: "252Mi"
+              cpu: "250m"
             limits:
-              memory: "128Mi"
-              cpu: "100m"
+              memory: "252Mi"
+              cpu: "250m"
           readinessProbe:
             initialDelaySeconds: 20
             periodSeconds: 20
@@ -228,11 +228,11 @@ wso2:
         deployment:
           resources:
             requests:
-              memory: "64Mi"
-              cpu: "50m"
+              memory: "252Mi"
+              cpu: "250m"
             limits:
-              memory: "128Mi"
-              cpu: "100m"
+              memory: "252Mi"
+              cpu: "250m"
           readinessProbe:
             initialDelaySeconds: 20
             periodSeconds: 20
@@ -243,8 +243,8 @@ wso2:
             failureThreshold: 5
           strategy: RollingUpdate
           replicas: 1
-          imagePullPolicy: Always
-          image: wso2/apk-common-controller:latest
+          imagePullPolicy: IfNotPresent
+          image: apk-common-controller:1.0.0-SNAPSHOT
           security:
             sslHostname: "commoncontroller"
           # configs:
@@ -331,8 +331,8 @@ wso2:
               periodSeconds: 20
               failureThreshold: 5
             strategy: RollingUpdate
-            imagePullPolicy: Always
-            image: wso2/apk-enforcer:latest
+            imagePullPolicy: IfNotPresent
+            image: apk-enforcer:1.0.0-SNAPSHOT
             security:
               sslHostname: "enforcer"
 #            logging:

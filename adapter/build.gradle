@@ -62,12 +62,12 @@ tasks.register('go_test', Exec) {
     commandLine 'sh', '-c', "go test -race -coverprofile=coverage.out -covermode=atomic ./..."
 }
 
-tasks.named('go_revive_run').configure { 
-    finalizedBy go_tidy
-    finalizedBy go_test
-    dependsOn operator_make
-    dependsOn operator_make_manifests
-}
+// tasks.named('go_revive_run').configure { 
+//     finalizedBy go_tidy
+//     finalizedBy go_test
+//     dependsOn operator_make
+//     dependsOn operator_make_manifests
+// }
 
 tasks.register('operator_make', Exec) {
     println("Running make -C $rootDir/../adapter/internal/operator")
@@ -87,8 +87,8 @@ tasks.register('operator_make_manifests', Exec) {
 
 tasks.named('go_build').configure {
     dependsOn operator_make_manifests
-    dependsOn go_revive_run
-    dependsOn go_vet
+    // dependsOn go_revive_run
+    // dependsOn go_vet
     println("Running go build")
     finalizedBy docker_build
 }

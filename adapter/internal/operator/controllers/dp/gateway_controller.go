@@ -56,6 +56,7 @@ const (
 
 var (
 	setReadiness sync.Once
+	supportedKinds               = []gwapiv1b1.Kind{gwapiv1b1.Kind("HTTPRoute")}
 )
 
 // GatewayReconciler reconciles a Gateway object
@@ -98,43 +99,49 @@ func NewGatewayController(mgr manager.Manager, operatorDataStore *synchronizer.O
 		return err
 	}
 
+	if err := c.Watch(source.Kind(mgr.GetCache(), &gwapiv1b1.HTTPRoute{}),
+		handler.EnqueueRequestsFromMapFunc(r.handleHttpRoutes), predicates...); err != nil {
+		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3121, logging.BLOCKER, "Error watching HttpRoutes resources: %v", err))
+		return err
+	}
+
 	if err := c.Watch(source.Kind(mgr.GetCache(), &dpv1alpha1.RateLimitPolicy{}),
 		handler.EnqueueRequestsFromMapFunc(r.handleCustomRateLimitPolicies), predicates...); err != nil {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3121, logging.BLOCKER, "Error watching Ratelimit resources: %v", err))
 		return err
 	}
 
-	if err := c.Watch(source.Kind(mgr.GetCache(), &dpv1alpha1.APIPolicy{}), handler.EnqueueRequestsFromMapFunc(r.getGatewaysForAPIPolicy),
+	if err := c.Watch(source.Kind(mgr.GetCache(), &dpv1alpha1.APIPolicy{}), handler.EnqueueRequestsFromMapFunc(r.handleGatewaysForAPIPolicy),
 		predicates...); err != nil {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3101, logging.BLOCKER, "Error watching APIPolicy resources: %v", err))
 		return err
 	}
 
-	if err := c.Watch(source.Kind(mgr.GetCache(), &dpv1alpha1.InterceptorService{}), handler.EnqueueRequestsFromMapFunc(r.getAPIsForInterceptorService),
+	if err := c.Watch(source.Kind(mgr.GetCache(), &dpv1alpha1.InterceptorService{}), handler.EnqueueRequestsFromMapFunc(r.handleAPIsForInterceptorService),
 		predicates...); err != nil {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3110, logging.BLOCKER, "Error watching InterceptorService resources: %v", err))
 		return err
 	}
 
-	if err := c.Watch(source.Kind(mgr.GetCache(), &dpv1alpha1.BackendJWT{}), handler.EnqueueRequestsFromMapFunc(r.getAPIsForBackendJWT),
+	if err := c.Watch(source.Kind(mgr.GetCache(), &dpv1alpha1.BackendJWT{}), handler.EnqueueRequestsFromMapFunc(r.handleAPIsForBackendJWT),
 		predicates...); err != nil {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3126, logging.BLOCKER, "Error watching BackendJWT resources: %v", err))
 		return err
 	}
 
-	if err := c.Watch(source.Kind(mgr.GetCache(), &dpv1alpha1.Backend{}), handler.EnqueueRequestsFromMapFunc(r.getGatewaysForBackend),
+	if err := c.Watch(source.Kind(mgr.GetCache(), &dpv1alpha1.Backend{}), handler.EnqueueRequestsFromMapFunc(r.handleGatewaysForBackend),
 		predicates...); err != nil {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3102, logging.BLOCKER, "Error watching Backend resources: %v", err))
 		return err
 	}
 
-	if err := c.Watch(source.Kind(mgr.GetCache(), &corev1.ConfigMap{}), handler.EnqueueRequestsFromMapFunc(r.getGatewaysForConfigMap),
+	if err := c.Watch(source.Kind(mgr.GetCache(), &corev1.ConfigMap{}), handler.EnqueueRequestsFromMapFunc(r.handleGatewaysForConfigMap),
 		predicates...); err != nil {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3103, logging.BLOCKER, "Error watching ConfigMap resources: %v", err))
 		return err
 	}
 
-	if err := c.Watch(source.Kind(mgr.GetCache(), &corev1.Secret{}), handler.EnqueueRequestsFromMapFunc(r.getGatewaysForSecret),
+	if err := c.Watch(source.Kind(mgr.GetCache(), &corev1.Secret{}), handler.EnqueueRequestsFromMapFunc(r.handleGatewaysForSecret),
 		predicates...); err != nil {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3104, logging.BLOCKER, "Error watching Secret resources: %v", err))
 		return err
@@ -175,7 +182,7 @@ func (gatewayReconciler *GatewayReconciler) Reconcile(ctx context.Context, req c
 	}
 	var gwCondition []metav1.Condition = gatewayDef.Status.Conditions
 
-	gatewayStateData, err := gatewayReconciler.resolveGatewayState(ctx, gatewayDef)
+	gatewayStateData, err, listenerStatueses := gatewayReconciler.resolveGatewayState(ctx, gatewayDef)
 	if err != nil {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3122, logging.BLOCKER, "Error resolving Gateway State %s: %v", req.NamespacedName.String(), err))
 		return ctrl.Result{}, err
@@ -184,11 +191,11 @@ func (gatewayReconciler *GatewayReconciler) Reconcile(ctx context.Context, req c
 	if gwCondition[0].Type != "Accepted" {
 		gatewayState := gatewayReconciler.ods.AddGatewayState(gatewayDef, gatewayStateData)
 		*gatewayReconciler.ch <- synchronizer.GatewayEvent{EventType: constants.Create, Event: gatewayState}
-		gatewayReconciler.handleGatewayStatus(req.NamespacedName, constants.Create, []string{})
+		gatewayReconciler.handleGatewayStatus(req.NamespacedName, constants.Create, []string{},  listenerStatueses)
 	} else if cachedGateway, events, updated :=
 		gatewayReconciler.ods.UpdateGatewayState(&gatewayDef, gatewayStateData); updated {
 		*gatewayReconciler.ch <- synchronizer.GatewayEvent{EventType: constants.Update, Event: cachedGateway}
-		gatewayReconciler.handleGatewayStatus(req.NamespacedName, constants.Update, events)
+		gatewayReconciler.handleGatewayStatus(req.NamespacedName, constants.Update, events, listenerStatueses)
 	}
 	setReadiness.Do(gatewayReconciler.setGatewayReadiness)
 	return ctrl.Result{}, nil
@@ -216,34 +223,90 @@ func (gatewayReconciler *GatewayReconciler) resolveListenerSecretRefs(ctx contex
 
 // resolveGatewayState resolves the GatewayState struct using gwapiv1b1.Gateway and resource indexes
 func (gatewayReconciler *GatewayReconciler) resolveGatewayState(ctx context.Context,
-	gateway gwapiv1b1.Gateway) (*synchronizer.GatewayStateData, error) {
+	gateway gwapiv1b1.Gateway) (*synchronizer.GatewayStateData, error, []gwapiv1b1.ListenerStatus) {
 	gatewayState := &synchronizer.GatewayStateData{}
 	var err error
 	resolvedListenerCerts := make(map[string]map[string][]byte)
 	namespace := gwapiv1b1.Namespace(gateway.Namespace)
+	listenerstatuses := make([]gwapiv1b1.ListenerStatus, 0)
+	httpRoutes, err := gatewayReconciler.getHttpRoutesForGateway(utils.NamespacedName(&gateway))
+	if err != nil {
+		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3124, logging.MAJOR, "Error while getting http routes: %s", err))
+	}
+	gatewayState.GatewayHttpRoutes = httpRoutes
 	// Retireve listener Certificates
 	for _, listener := range gateway.Spec.Listeners {
+		accepted := true
+		listenerStatus := gwapiv1b1.ListenerStatus{
+				Name: listener.Name,
+				SupportedKinds: []gwapiv1b1.RouteGroupKind{},
+				Conditions: []metav1.Condition{},
+				AttachedRoutes: 0,
+			}
+		
+		actualRouteKinds := listener.AllowedRoutes.Kinds
+		actualKinds := make([]gwapiv1b1.Kind, len(actualRouteKinds))
+		for i, obj := range actualRouteKinds {
+				actualKinds[i] = obj.Kind
+		}
+		intersectionKinds := findIntersectionKinds(supportedKinds, actualKinds);
+		loggers.LoggerAPKOperator.Info("intersections:  ", intersectionKinds)
+		for _, kind := range intersectionKinds {
+			loggers.LoggerAPKOperator.Info("adding kind: ", kind)
+			listenerStatus.SupportedKinds = append(listenerStatus.SupportedKinds, gwapiv1b1.RouteGroupKind{
+				Group: (*gwapiv1b1.Group)(&gwapiv1b1.GroupVersion.Group),
+				Kind:  kind,
+			})
+		}
+
+		loggers.LoggerAPKOperator.Info("listenerStatus.supportedkinds: ", listenerStatus.SupportedKinds)
+		if (len(intersectionKinds) < len(actualRouteKinds)) {
+			accepted = false
+			listenerStatus.Conditions = append(listenerStatus.Conditions, metav1.Condition{
+				Type:   string(gwapiv1b1.ListenerConditionResolvedRefs),
+				Status: metav1.ConditionFalse,
+				Reason: string(gwapiv1b1.ListenerReasonInvalidRouteKinds),
+			})
+		}
+
 		data, err := gatewayReconciler.resolveListenerSecretRefs(ctx, &listener.TLS.CertificateRefs[0], string(namespace))
 		if err != nil {
+			accepted = false
+			listenerStatus.Conditions = append(listenerStatus.Conditions, metav1.Condition{
+				Type:   string(gwapiv1b1.ListenerConditionResolvedRefs),
+				Status: metav1.ConditionFalse,
+				Reason: string(gwapiv1b1.ListenerReasonInvalidCertificateRef),
+			})
 			loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3105, logging.BLOCKER, "Error resolving listener certificates: %v", err))
-			return nil, err
+			return nil, err, listenerstatuses
 		}
 		resolvedListenerCerts[string(listener.Name)] = data
+		if (accepted) {
+			listenerStatus.Conditions = append(listenerStatus.Conditions, metav1.Condition{
+				Type:   string(gwapiv1b1.ListenerConditionAccepted),
+				Status: metav1.ConditionTrue,
+				Reason: "Listener accepted.",
+			})
+		}
+		listenerstatuses = append(listenerstatuses, listenerStatus)
 	}
 	gatewayState.GatewayResolvedListenerCerts = resolvedListenerCerts
 	if gatewayState.GatewayAPIPolicies, err = gatewayReconciler.getAPIPoliciesForGateway(ctx, &gateway); err != nil {
-		return nil, fmt.Errorf("error while getting gateway apipolicy for gateway: %s, %s", utils.NamespacedName(&gateway).String(), err.Error())
+		return nil, fmt.Errorf("error while getting gateway apipolicy for gateway: %s, %s", utils.NamespacedName(&gateway).String(), err.Error()), listenerstatuses
 	}
 	if gatewayState.GatewayInterceptorServiceMapping, err = gatewayReconciler.getInterceptorServicesForGateway(ctx, gatewayState.GatewayAPIPolicies); err != nil {
-		return nil, fmt.Errorf("error while getting interceptor service for gateway: %s, %s", utils.NamespacedName(&gateway).String(), err.Error())
+		return nil, fmt.Errorf("error while getting interceptor service for gateway: %s, %s", utils.NamespacedName(&gateway).String(), err.Error()), listenerstatuses
 	}
 	customRateLimitPolicies, err := gatewayReconciler.getCustomRateLimitPoliciesForGateway(utils.NamespacedName(&gateway))
 	if err != nil {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3124, logging.MAJOR, "Error while getting custom rate limit policies: %s", err))
 	}
 	gatewayState.GatewayCustomRateLimitPolicies = customRateLimitPolicies
+
+	
+	
 	gatewayState.GatewayBackendMapping = gatewayReconciler.getResolvedBackendsMapping(ctx, gatewayState)
-	return gatewayState, nil
+	return gatewayState, nil, listenerstatuses
 }
 
 func (gatewayReconciler *GatewayReconciler) getAPIPoliciesForGateway(ctx context.Context,
@@ -315,7 +378,7 @@ func (gatewayReconciler *GatewayReconciler) getResolvedBackendsMapping(ctx conte
 
 // getGatewaysForBackend triggers the Gateway controller reconcile method based on the changes detected
 // in backend resources.
-func (gatewayReconciler *GatewayReconciler) getGatewaysForBackend(ctx context.Context, obj k8client.Object) []reconcile.Request {
+func (gatewayReconciler *GatewayReconciler) handleGatewaysForBackend(ctx context.Context, obj k8client.Object) []reconcile.Request {
 	backend, ok := obj.(*dpv1alpha1.Backend)
 	if !ok {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3107, logging.TRIVIAL, "Unexpected object type, bypassing reconciliation: %v", backend))
@@ -334,7 +397,7 @@ func (gatewayReconciler *GatewayReconciler) getGatewaysForBackend(ctx context.Co
 
 	for service := range interceptorServiceList.Items {
 		interceptorService := interceptorServiceList.Items[service]
-		requests = append(requests, gatewayReconciler.getAPIsForInterceptorService(ctx, &interceptorService)...)
+		requests = append(requests, gatewayReconciler.handleAPIsForInterceptorService(ctx, &interceptorService)...)
 	}
 
 	return requests
@@ -342,7 +405,7 @@ func (gatewayReconciler *GatewayReconciler) getGatewaysForBackend(ctx context.Co
 
 // getAPIsForInterceptorService triggers the Gateway controller reconcile method based on the changes detected
 // in InterceptorService resources.
-func (gatewayReconciler *GatewayReconciler) getAPIsForInterceptorService(ctx context.Context, obj k8client.Object) []reconcile.Request {
+func (gatewayReconciler *GatewayReconciler) handleAPIsForInterceptorService(ctx context.Context, obj k8client.Object) []reconcile.Request {
 	interceptorService, ok := obj.(*dpv1alpha1.InterceptorService)
 	if !ok {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3107, logging.TRIVIAL, "Unexpected object type, bypassing reconciliation: %v", interceptorService))
@@ -361,7 +424,7 @@ func (gatewayReconciler *GatewayReconciler) getAPIsForInterceptorService(ctx con
 
 	for item := range apiPolicyList.Items {
 		apiPolicy := apiPolicyList.Items[item]
-		requests = append(requests, gatewayReconciler.getGatewaysForAPIPolicy(ctx, &apiPolicy)...)
+		requests = append(requests, gatewayReconciler.handleGatewaysForAPIPolicy(ctx, &apiPolicy)...)
 	}
 
 	return requests
@@ -369,7 +432,7 @@ func (gatewayReconciler *GatewayReconciler) getAPIsForInterceptorService(ctx con
 
 // getAPIsForBackendJWT triggers the Gateway controller reconcile method based on the changes detected
 // in BackendJWT resources.
-func (gatewayReconciler *GatewayReconciler) getAPIsForBackendJWT(ctx context.Context, obj k8client.Object) []reconcile.Request {
+func (gatewayReconciler *GatewayReconciler) handleAPIsForBackendJWT(ctx context.Context, obj k8client.Object) []reconcile.Request {
 	backendJWT, ok := obj.(*dpv1alpha1.BackendJWT)
 	if !ok {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3107, logging.TRIVIAL, "Unexpected object type, bypassing reconciliation: %v", backendJWT))
@@ -388,7 +451,7 @@ func (gatewayReconciler *GatewayReconciler) getAPIsForBackendJWT(ctx context.Con
 
 	for item := range apiPolicyList.Items {
 		apiPolicy := apiPolicyList.Items[item]
-		requests = append(requests, gatewayReconciler.getGatewaysForAPIPolicy(ctx, &apiPolicy)...)
+		requests = append(requests, gatewayReconciler.handleGatewaysForAPIPolicy(ctx, &apiPolicy)...)
 	}
 
 	return requests
@@ -396,7 +459,7 @@ func (gatewayReconciler *GatewayReconciler) getAPIsForBackendJWT(ctx context.Con
 
 // getGatewaysForSecret triggers the Gateway controller reconcile method based on the changes detected
 // in secret resources.
-func (gatewayReconciler *GatewayReconciler) getGatewaysForSecret(ctx context.Context, obj k8client.Object) []reconcile.Request {
+func (gatewayReconciler *GatewayReconciler) handleGatewaysForSecret(ctx context.Context, obj k8client.Object) []reconcile.Request {
 	secret, ok := obj.(*corev1.Secret)
 	if !ok {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3107, logging.TRIVIAL, "Unexpected object type, bypassing reconciliation: %v", secret))
@@ -414,14 +477,14 @@ func (gatewayReconciler *GatewayReconciler) getGatewaysForSecret(ctx context.Con
 	requests := []reconcile.Request{}
 	for item := range backendList.Items {
 		backend := backendList.Items[item]
-		requests = append(requests, gatewayReconciler.getGatewaysForBackend(ctx, &backend)...)
+		requests = append(requests, gatewayReconciler.handleGatewaysForBackend(ctx, &backend)...)
 	}
 	return requests
 }
 
 // getGatewaysForConfigMap triggers the API controller reconcile method based on the changes detected
 // in configMap resources.
-func (gatewayReconciler *GatewayReconciler) getGatewaysForConfigMap(ctx context.Context, obj k8client.Object) []reconcile.Request {
+func (gatewayReconciler *GatewayReconciler) handleGatewaysForConfigMap(ctx context.Context, obj k8client.Object) []reconcile.Request {
 	configMap, ok := obj.(*corev1.ConfigMap)
 	if !ok {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3107, logging.TRIVIAL, "Unexpected object type, bypassing reconciliation: %v", configMap))
@@ -439,13 +502,13 @@ func (gatewayReconciler *GatewayReconciler) getGatewaysForConfigMap(ctx context.
 	requests := []reconcile.Request{}
 	for item := range backendList.Items {
 		backend := backendList.Items[item]
-		requests = append(requests, gatewayReconciler.getGatewaysForBackend(ctx, &backend)...)
+		requests = append(requests, gatewayReconciler.handleGatewaysForBackend(ctx, &backend)...)
 	}
 	return requests
 }
 
 // handleStatus updates the Gateway CR update
-func (gatewayReconciler *GatewayReconciler) handleGatewayStatus(gatewayKey types.NamespacedName, state string, events []string) {
+func (gatewayReconciler *GatewayReconciler) handleGatewayStatus(gatewayKey types.NamespacedName, state string, events []string, listeners []gwapiv1b1.ListenerStatus) {
 	accept := false
 	message := ""
 	//event := ""
@@ -471,6 +534,7 @@ func (gatewayReconciler *GatewayReconciler) handleGatewayStatus(gatewayKey types
 			}
 			hCopy := h.DeepCopy()
 			var gwCondition []metav1.Condition = hCopy.Status.Conditions
+			generation := hCopy.ObjectMeta.Generation
 			gwCondition[0].Status = "Unknown"
 			if accept {
 				gwCondition[0].Status = "True"
@@ -482,7 +546,19 @@ func (gatewayReconciler *GatewayReconciler) handleGatewayStatus(gatewayKey types
 			// gwCondition[0].Reason = append(gwCondition[0].Reason, event)
 			gwCondition[0].Reason = "Reconciled"
 			gwCondition[0].Type = state
+			for i := range gwCondition {
+				// Assign generation to ObservedGeneration
+				gwCondition[i].ObservedGeneration = generation
+			}
 			hCopy.Status.Conditions = gwCondition
+			for _, listener := range hCopy.Status.Listeners {
+				for _, listener1 := range listeners {
+					if (string(listener.Name) == string(listener1.Name)) {
+						listener1.AttachedRoutes = listener.AttachedRoutes
+					}
+				}
+			}
+			hCopy.Status.Listeners = listeners
 			return hCopy
 		},
 	})
@@ -516,6 +592,32 @@ func (gatewayReconciler *GatewayReconciler) handleCustomRateLimitPolicies(ctx co
 	return requests
 }
 
+// handleHttpRoutes returns the list of gateway reconcile requests
+func (gatewayReconciler *GatewayReconciler) handleHttpRoutes(ctx context.Context, obj k8client.Object) []reconcile.Request {
+	httpRoute, ok := obj.(*gwapiv1b1.HTTPRoute)
+	if !ok {
+		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3107, logging.TRIVIAL, "Unexpected object type, bypassing reconciliation: %v", httpRoute))
+		return []reconcile.Request{}
+	}
+	requests := []reconcile.Request{}
+
+	for _, refs := range httpRoute.Spec.ParentRefs {
+		if (*refs.Kind == constants.KindGateway) {
+			namespace := string(*refs.Namespace)
+			if (namespace == "") {
+				namespace = httpRoute.Namespace
+			} 
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: namespace,
+					Name:      string(refs.Name),
+				},
+			})
+		}
+	}
+	return requests
+}
+
 // getCustomRateLimitPoliciesForGateway returns the list of custom rate limit policies for a gateway
 func (gatewayReconciler *GatewayReconciler) getCustomRateLimitPoliciesForGateway(gatewayName types.NamespacedName) (map[string]*dpv1alpha1.RateLimitPolicy, error) {
 	ctx := context.Background()
@@ -533,9 +635,26 @@ func (gatewayReconciler *GatewayReconciler) getCustomRateLimitPoliciesForGateway
 	return rateLimitPolicies, nil
 }
 
-// getGatewaysForAPIPolicy triggers the Gateway controller reconcile method
+// getHttpRoutesForGateway returns the list of http routes for a gateway
+func (gatewayReconciler *GatewayReconciler) getHttpRoutesForGateway(gatewayName types.NamespacedName) (map[string]*gwapiv1b1.HTTPRoute, error) {
+	ctx := context.Background()
+	var httpRoutesList gwapiv1b1.HTTPRouteList
+	httpRoutes := make(map[string]*gwapiv1b1.HTTPRoute)
+	if err := gatewayReconciler.client.List(ctx, &httpRoutesList, &k8client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(gatewayHTTPRouteIndex, gatewayName.String()),
+	}); err != nil {
+		return nil, err
+	}
+	for _, item := range httpRoutesList.Items {
+		httpRoute := item
+		httpRoutes[utils.NamespacedName(&httpRoute).String()] = &httpRoute
+	}
+	return httpRoutes, nil
+}
+
+// handleGatewaysForAPIPolicy triggers the Gateway controller reconcile method
 // based on the changes detected from APIPolicy objects.
-func (gatewayReconciler *GatewayReconciler) getGatewaysForAPIPolicy(ctx context.Context, obj k8client.Object) []reconcile.Request {
+func (gatewayReconciler *GatewayReconciler) handleGatewaysForAPIPolicy(ctx context.Context, obj k8client.Object) []reconcile.Request {
 	apiPolicy, ok := obj.(*dpv1alpha1.APIPolicy)
 	if !ok {
 		loggers.LoggerAPKOperator.ErrorC(logging.PrintError(logging.Error3107, logging.TRIVIAL, "Unexpected object type, bypassing reconciliation: %v", apiPolicy))
@@ -614,4 +733,33 @@ func addGatewayIndexes(ctx context.Context, mgr manager.Manager) error {
 			return httpRoutes
 		})
 	return err
+}
+
+func findIntersectionKinds(list1, list2 []gwapiv1b1.Kind) []gwapiv1b1.Kind {
+	intersection := []gwapiv1b1.Kind{}
+	set := make(map[string]bool)
+	for _, v := range list1 {
+		set[string(v)] = true
+	}
+	for _, v := range list2 {
+		if set[string(v)] {
+			intersection = append(intersection, v)
+		}
+	}
+	return intersection
+}
+
+// findDiffFromSecondListKinds return a list of elements in list2 that are not in the list1
+func findDiffFromSecondListKinds(list1, list2 []gwapiv1b1.Kind) []gwapiv1b1.Kind {
+	diff := []gwapiv1b1.Kind{}
+	set := make(map[string]bool)
+	for _, v := range list1 {
+		set[string(v)] = true
+	}
+	for _, v := range list2 {
+		if !set[string(v)] {
+			diff = append(diff, v)
+		}
+	}
+	return diff
 }
