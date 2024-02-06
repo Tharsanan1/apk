@@ -79,19 +79,19 @@ for user_count in "${user_counts_array[@]}"; do
         nohup sh -c "sleep $((duration/2)) && kubectl top po --containers -A > ${results_dir}/resources-$((duration/2/60))min.txt" >/dev/null &
         nohup sh -c "sleep $((duration*3/4)) && kubectl top po --containers -A > ${results_dir}/resources-$((duration*3/4/60))min.txt" >/dev/null &
         
-        pod_name=$(kubectl get pods -n apk-perf-test -l app.kubernetes.io/app=router -o jsonpath='{.items[0].metadata.name}')
-        nohup sh -c "kubectl -n apk-perf-test logs $pod_name -c enforcer --since 1s -f > ${results_dir}/enforcer.log"  >/dev/null &
+        pod_name=$(kubectl get pods -n apk-integration-test -l app.kubernetes.io/app=router -o jsonpath='{.items[0].metadata.name}')
+        nohup sh -c "kubectl -n apk-integration-test logs $pod_name -c enforcer --since 1s -f > ${results_dir}/enforcer.log"  >/dev/null &
         enforcer_log_pid=$!
         nohup sh -c "echo "Killing enforcer log process" && sleep $duration && kill -9 $enforcer_log_pid" &
-        nohup sh -c "kubectl -n apk-perf-test logs $pod_name -c router --since 1s -f > ${results_dir}/router.log"  >/dev/null &
+        nohup sh -c "kubectl -n apk-integration-test logs $pod_name -c router --since 1s -f > ${results_dir}/router.log"  >/dev/null &
         router_log_pid=$!
         nohup sh -c "echo "Killing enforcer log process" && sleep $duration && kill -9 $router_log_pid" &
         echo echo "Process ids: $enforcer_log_pid, $router_log_pid"
-        kubectl describe  pods   $pod_name -n apk-perf-test > ${results_dir}/pod-describe-start.txt
-        nohup sh -c "sleep $((duration/4)) && kubectl describe  pods   $pod_name -n apk-perf-test > ${results_dir}/pod-describe-$((duration/4/60))min.txt" >/dev/null &
-        nohup sh -c "sleep $((duration/2)) && kubectl describe  pods   $pod_name -n apk-perf-test > ${results_dir}/pod-describe-$((duration/2/60))min.txt" >/dev/null &
-        nohup sh -c "sleep $((duration*3/4)) && kubectl describe  pods   $pod_name -n apk-perf-test > ${results_dir}/pod-describe-$((duration*3/4/60))min.txt" >/dev/null &
-        nohup sh -c "sleep $duration && kubectl describe  pods   $pod_name -n apk-perf-test > ${results_dir}/pod-describe-end.txt" >/dev/null &
+        kubectl describe  pods   $pod_name -n apk-integration-test > ${results_dir}/pod-describe-start.txt
+        nohup sh -c "sleep $((duration/4)) && kubectl describe  pods   $pod_name -n apk-integration-test > ${results_dir}/pod-describe-$((duration/4/60))min.txt" >/dev/null &
+        nohup sh -c "sleep $((duration/2)) && kubectl describe  pods   $pod_name -n apk-integration-test > ${results_dir}/pod-describe-$((duration/2/60))min.txt" >/dev/null &
+        nohup sh -c "sleep $((duration*3/4)) && kubectl describe  pods   $pod_name -n apk-integration-test > ${results_dir}/pod-describe-$((duration*3/4/60))min.txt" >/dev/null &
+        nohup sh -c "sleep $duration && kubectl describe  pods   $pod_name -n apk-integration-test > ${results_dir}/pod-describe-end.txt" >/dev/null &
         
         ./run-jmeter.sh -m "$heap_size" -u "$user_count" -p "$payload_size" -d "$duration" -s "$remote_hosts" -r "$results_dir" -t "$tokens_path"
 
