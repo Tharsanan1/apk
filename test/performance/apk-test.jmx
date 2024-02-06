@@ -27,8 +27,8 @@
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
       </ThreadGroup>
       <hashTree>
-        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Tokens" enabled="false">
-          <stringProp name="filename">${__P(tokens_path,/home/azureuser/apk/jwt-tokens/target/jwt-tokens-500.csv)}</stringProp>
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Tokens" enabled="true">
+          <stringProp name="filename">/home/azureuser/test.csv</stringProp>
           <stringProp name="fileEncoding"></stringProp>
           <stringProp name="variableNames">token</stringProp>
           <stringProp name="delimiter">,</stringProp>
@@ -73,7 +73,7 @@
           <stringProp name="HTTPSampler.port">9095</stringProp>
           <stringProp name="HTTPSampler.protocol">https</stringProp>
           <stringProp name="HTTPSampler.contentEncoding"></stringProp>
-          <stringProp name="HTTPSampler.path">/base-path-${__groovy(new Random().nextInt(971) + 10)}/v1/pet/1</stringProp>
+          <stringProp name="HTTPSampler.path">/base-path-${token}/v1/pet/1</stringProp>
           <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
