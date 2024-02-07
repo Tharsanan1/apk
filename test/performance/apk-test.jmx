@@ -49,6 +49,10 @@
               <stringProp name="Header.name">Host</stringProp>
               <stringProp name="Header.value">default.gw.wso2.com</stringProp>
             </elementProp>
+            <elementProp name="" elementType="Header">
+              <stringProp name="Header.name">Authorization</stringProp>
+              <stringProp name="Header.value">bearer eyJ4NXQiOiJOMkpqTWpOaU0yRXhZalJrTnpaalptWTFZVEF4Tm1GbE5qZzRPV1UxWVdRMll6YzFObVk1TlEiLCJraWQiOiJNREpsTmpJeE4yRTFPR1psT0dWbU1HUXhPVEZsTXpCbU5tRmpaalEwWTJZd09HWTBOMkkwWXpFNFl6WmpOalJoWW1SbU1tUTBPRGRpTkRoak1HRXdNQV9SUzI1NiIsImFsZyI6IlJTMjU2In0=.eyJhdWQiOiIxMjM0Iiwic3ViIjoiYWRtaW5AY2FyYm9uLnN1cGVyIiwibmJmIjoxNzA3MTk5NjI4LCJhenAiOiIxMjM0Iiwic2NvcGUiOiJhbV9hcHBsaWNhdGlvbl9zY29wZSBkZWZhdWx0IiwiaXNzIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6OTQ0My9vYXV0aDIvdG9rZW4iLCJrZXl0eXBlIjoiUFJPRFVDVElPTiIsImV4cCI6MTczODczNTYyOCwiaWF0IjoxNzA3MTk5NjI4LCJqdGkiOiI4MTNkMDJiOS1mZDkwLTQxYWItOTgwYy01YzkyMWFkZGZmZjYifQ==.JmOFIe4gtRj7-g6UOc8maKTnfQAvHAL9dGHdQ5GDgi89YLLf91LPueZSGP0UXf2nVHSimA0GtxkpnaZgJdky00JyxhSoguT_GgF9Itua0G0scG6hx6SRNKOxKcy7vGQoC3dGzRhyeSoscymF9zZcZH8UTvIQm2F3UkzuvtuuzHKL2rtqNXzII8z2B0-jN4KRtTRp2guWjPGOBHJc_smA1sF-rms7Ii_fyWsfalKBrqiV0QoBUznjEV-au4CLuFPc2XB8qySNCBf9cZ0qRdVH4Y5eM9XyDo85DgbBBmTwc-a-t4VcjYvQGesvhqzBS9DSw5oA4-6ia7c_dxQkgL1bEg==</stringProp>
+            </elementProp>
           </collectionProp>
         </HeaderManager>
         <hashTree/>
