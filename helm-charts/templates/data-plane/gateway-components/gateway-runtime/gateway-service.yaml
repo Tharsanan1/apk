@@ -20,10 +20,9 @@ kind: Service
 metadata:
   name: {{ template "apk-helm.resource.prefix" . }}-gateway-service
   namespace : {{ .Release.Namespace }}
-{{if and .Values.wso2.apk.dp.gatewayRuntime.service .Values.wso2.apk.dp.gatewayRuntime.service.annotations }}
-  annotations:
-{{ toYaml .Values.wso2.apk.dp.gatewayRuntime.service.annotations | indent 4 }}
-{{ end }}
+  annotations: 
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "default"
 spec:
   type: LoadBalancer
   # label keys and values that must match in order to receive traffic for this service

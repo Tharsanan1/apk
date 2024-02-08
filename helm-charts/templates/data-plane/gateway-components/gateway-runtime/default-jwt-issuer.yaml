@@ -5,10 +5,10 @@ metadata:
   name: {{ template "apk-helm.resource.prefix" . }}-default-jwt-issuer
   namespace: {{ .Release.Namespace }}
 spec:
-  name: "default-jwt-issuer"
+  name: "custom-jwt-issuer"
   consumerKeyClaim: {{ .Values.wso2.apk.idp.consumerKeyClaim | default "azp" }}
   scopesClaim: {{ .Values.wso2.apk.idp.scopeClaim | default "scope" }}
-  issuer: "{{ .Values.wso2.apk.idp.issuer }}"
+  issuer: "https://localhost:9443/oauth2/token"
   organization: "default"
   signatureValidation:
   {{if and .Values.wso2.apk.idp.signing }}
@@ -40,9 +40,9 @@ spec:
     {{end}}
     {{else}}
     certificate:
-      secretRef:
-        name: "{{ template "apk-helm.resource.prefix" . }}-enforcer-truststore-secret"
-        key: "wso2carbon.pem"
+      configMapRef:
+        name: custom-jwt-cm
+        key: "wso2carboncustom.pem"
     {{ end }}
     {{ if .Values.wso2.apk.idp.organizationClaim }}
   claimMappings:
