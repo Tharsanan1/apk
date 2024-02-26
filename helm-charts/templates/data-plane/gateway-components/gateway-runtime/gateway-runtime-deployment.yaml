@@ -52,6 +52,8 @@ spec:
               protocol: "TCP"
             - containerPort: 18002
               protocol: "TCP"
+            - containerPort: 5006	
+              protocol: "TCP"
 {{ include "apk-helm.deployment.resources" .Values.wso2.apk.dp.gatewayRuntime.deployment.enforcer.resources | indent 10 }}
 {{ include "apk-helm.deployment.env" .Values.wso2.apk.dp.gatewayRuntime.deployment.enforcer.env | indent 10 }}
             - name: ADAPTER_HOST_NAME
@@ -87,7 +89,7 @@ spec:
             - name: enforcer_admin_pwd
               value: admin
             - name: JAVA_OPTS
-              value: -Dhttpclient.hostnameVerifier=AllowAll -Xms1500m -Xmx1500m -XX:MaxRAMFraction=2
+              value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5006 -Dhttpclient.hostnameVerifier=AllowAll -Xms1500m -Xmx1500m -XX:MaxRAMFraction=2
             {{- if .Values.wso2.apk.dp.gatewayRuntime.deployment.enforcer.redis }}
             - name: REDIS_USERNAME
               value: {{ .Values.wso2.apk.dp.gatewayRuntime.deployment.enforcer.redis.username | default "default" }}
