@@ -1,0 +1,55 @@
+---
+apiVersion: cp.wso2.com/v1alpha2
+kind: Subscription
+metadata:
+  name: sub-id-1
+  namespace: apk-integration-test
+spec:
+  organization: "default"
+  subscriptionStatus: "ACTIVE"
+  api:
+    name: "default-api-definition-endpoint-test"
+    version: "3.14"
+---
+kind: Application
+apiVersion: cp.wso2.com/v1alpha2
+metadata:
+  name: app-id-1
+  namespace : apk-integration-test
+spec:
+  name: sample-app
+  owner: admin
+  organization: default
+  securitySchemes:
+    oauth2:
+      environments:
+        - envId: Default
+          appId: sub-perf-test
+          keyType: PRODUCTION
+---
+apiVersion: cp.wso2.com/v1alpha2
+kind: ApplicationMapping
+metadata:
+  name: app-map-id-1
+  namespace: apk-integration-test
+spec:
+  applicationRef: app-id-1
+  subscriptionRef: sub-id-1
+---
+apiVersion: "dp.wso2.com/v1alpha2"
+kind: "APIPolicy"
+metadata:
+  name: "subscription-api-api-policy"
+  namespace: "apk-integration-test"
+  labels:
+    api-name: "c057be139ded2d4284dccd288aa034e41d33d1c4"
+    api-version: "91e95be6b6634e3c21072dfcd661146728694326"
+    organization: "7505d64a54e061b7acd54ccd58b49dc43500b635"
+    managed-by: "apk"
+spec:
+  default:
+    subscriptionValidation: true
+  targetRef:
+    group: "dp.wso2.com"
+    kind: "API"
+    name: "default-api-definition-endpoint-test"
