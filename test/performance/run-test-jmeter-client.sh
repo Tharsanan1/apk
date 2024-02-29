@@ -12,10 +12,10 @@ duration=1200
 remote_hosts=""
 tokens_path=""
 
-declare -a user_counts_array=(1000 500 200 100 50 10)
-declare -a payloads_array=("102400B" "10240B" "1024B" "50B")
-# declare -a user_counts_array=(10)
-# declare -a payloads_array=("50B")
+# declare -a user_counts_array=(1000 500 200 100 50 10)
+# declare -a payloads_array=("102400B" "10240B" "1024B" "50B")
+declare -a user_counts_array=(1000)
+declare -a payloads_array=("50B")
 
 
 
