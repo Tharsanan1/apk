@@ -984,7 +984,7 @@ func (adapterInternalAPI *AdapterInternalAPI) SetInfoHTTPRouteCR(httpRoute *gwap
 				loggers.LoggerAPI.Debugf("ModelBasedRoundRobin extracted %v", extracted)
 				modelBasedRoundRobin = extracted
 			}
-			loggers.LoggerAPI.Debugf("resource path %+v methods %+v sendtoenforcer %+v", resourcePath, operations, sendToEnforcer || enableBackendBasedAIRatelimit)
+			loggers.LoggerAPI.Infof("resource path %+v methods %+v sendtoenforcer %+v", resourcePath, operations, sendToEnforcer || enableBackendBasedAIRatelimit)
 			resource := &Resource{
 				path:                                   resourcePath,
 				methods:                                operations,
@@ -1400,10 +1400,20 @@ func (adapterInternalAPI *AdapterInternalAPI) SetInfoGQLRouteCR(gqlRoute *dpv1al
 
 		for _, match := range rule.Matches {
 			resourcePath := *match.Path
-			resource := &Resource{path: resourcePath,
-				methods: []*Operation{{iD: uuid.New().String(), method: string(*match.Type), policies: policies,
-					auth: apiAuth, rateLimitPolicy: parseRateLimitPolicyToInternal(resourceRatelimitPolicy), scopes: scopes}},
+			resource := &Resource{
+				path: resourcePath,
+				methods: []*Operation{
+					{
+						iD: uuid.New().String(), 
+						method: string(*match.Type), 
+						policies: policies,
+						auth: apiAuth, 
+						rateLimitPolicy: parseRateLimitPolicyToInternal(resourceRatelimitPolicy), 
+						scopes: scopes,
+					},
+				},
 				iD: uuid.New().String(),
+				sendToEnforcer: true,
 			}
 			resources = append(resources, resource)
 		}
@@ -1610,7 +1620,7 @@ func (adapterInternalAPI *AdapterInternalAPI) SetInfoGRPCRouteCR(grpcRoute *gwap
 			resource := &Resource{path: resourcePath, pathMatchType: "Exact",
 				methods: []*Operation{{iD: uuid.New().String(), method: "POST", policies: policies,
 					auth: apiAuth, rateLimitPolicy: parseRateLimitPolicyToInternal(resourceRatelimitPolicy), scopes: scopes}},
-				iD: uuid.New().String(),
+				iD: uuid.New().String(), sendToEnforcer: true,
 			}
 			endpoints := GetEndpoints(backendName, resourceParams.BackendMapping)
 			resource.endpoints = &EndpointCluster{

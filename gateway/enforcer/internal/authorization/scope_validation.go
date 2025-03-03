@@ -30,6 +30,8 @@ import (
 func ValidateScopes(rch *requestconfig.Holder, subAppDataStore *datastore.SubscriptionApplicationDataStore, cfg *config.Server) *dto.ImmediateResponse {
 	requiredScopes := rch.MatchedResource.Scopes
 	scopes := rch.JWTValidationInfo.Scopes
+	cfg.Logger.Sugar().Debug("Required Scopes: %v\n", requiredScopes)
+	cfg.Logger.Sugar().Debug("User Scopes: %v\n", scopes)
 	if len(requiredScopes) == 0 {
 		return nil
 	}

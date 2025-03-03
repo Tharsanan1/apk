@@ -349,6 +349,7 @@ func (s *ExternalProcessingServer) Process(srv envoy_service_proc_v3.ExternalPro
 			s.log.Sugar().Debug(fmt.Sprintf("req holderrr: %+v\n s: %+v", requestConfigHolder, s))
 			if requestConfigHolder.MatchedResource != nil && requestConfigHolder.MatchedResource.AuthenticationConfig != nil && !requestConfigHolder.MatchedResource.AuthenticationConfig.Disabled && !requestConfigHolder.MatchedAPI.DisableAuthentication {
 				if immediateResponse := authorization.Validate(s.authenticator, requestConfigHolder, s.subscriptionApplicationDatastore, s.cfg); immediateResponse != nil {
+					s.log.Sugar().Debug("Sending immediate response due to failed authorization")
 					// Update the Content-Type header
 					headers := &envoy_service_proc_v3.HeaderMutation{
 						SetHeaders: []*corev3.HeaderValueOption{
