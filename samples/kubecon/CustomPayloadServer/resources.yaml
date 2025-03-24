@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hello-config
+data:
+  get-hello: |
+    {
+      "greeting": "Hello",
+      "target": "World",
+      "message": "This is a multiline JSON payload",
+      "status": "success"
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-server-deployment
+  labels:
+    app: flask-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-server
+  template:
+    metadata:
+      labels:
+        app: flask-server
+    spec:
+      containers:
+      - name: flask-server
+        image: tharsanan/flask-server:latest  # Assumes you built the image locally
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: config-volume
+          mountPath: "/app/get-hello"  # Mounts as a file in the app directory
+          subPath: "get-hello"         # Specifies the specific key from ConfigMap
+      volumes:
+      - name: config-volume
+        configMap:
+          name: hello-config         # References the ConfigMap
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-server-service
+spec:
+  selector:
+    app: flask-server
+  ports:
+    - protocol: TCP
+      port: 80          # External port
+      targetPort: 5000  # Container port
+  type: LoadBalancer    # Use NodePort if you don't have a cloud load balancer
