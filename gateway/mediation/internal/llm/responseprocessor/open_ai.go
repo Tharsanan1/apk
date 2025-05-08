@@ -2,7 +2,6 @@ package responseprocessor
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 
 	"github.com/wso2/apk/gateway/mediation/internal/llm/apischema/openai"
@@ -33,16 +32,22 @@ func NewOpenAIResponseProcessor() *OpenAIResponseProcessor {
 // ProcessResponse processes the OpenAI response and extracts token counts.
 func (p *OpenAIResponseProcessor) ProcessResponse(response io.Reader) (*OpenAIResponseProcessor, error) {
 	// Simulate processing the response and extracting token counts
-	buf, err := io.ReadAll(response)
-	if err != nil {
-		return p, fmt.Errorf("failed to read response: %w", err)
-	}
-	p.ProcessedResponse = string(buf)
+	// buf, err := io.ReadAll(response)
+	// if err != nil {
+	// 	return p, fmt.Errorf("failed to read response: %w", err)
+	// }
+	// p.ProcessedResponse = string(buf)
 
 	var resp openai.ChatCompletionResponse
 	if err := json.NewDecoder(response).Decode(&resp); err != nil {
 		return p, err
 	}
+
+	bytes, err := json.Marshal(resp)
+	if err != nil {
+		panic(err)
+	}
+	p.ProcessedResponse = string(bytes)
 
 	p.TotalTokens = resp.Usage.TotalTokens
 	p.PromptTokens = resp.Usage.PromptTokens

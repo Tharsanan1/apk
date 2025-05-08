@@ -78,6 +78,15 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: backend
+  annotations:
+    gateway.envoyproxy.io/foo: bar
+    gateway.envoyproxy.io/path: hi11111
+    gateway.envoyproxy.io/name: name1
+    gateway.envoyproxy.io/version: vvv
+    gateway.envoyproxy.io/clusterName: cccc
+    gateway.envoyproxy.io/aischema: openai
+  labels:
+    env: production8
 spec:
   parentRefs:
     - name: eg
@@ -87,19 +96,25 @@ spec:
     - backendRefs:
         - group: ""
           kind: Service
-          name: backend
-          port: 3000
+          name: flask-json-service
+          port: 80
           weight: 1
       matches:
         - path:
             type: PathPrefix
-            value: /
-
+            value: /hello
+        - path:
+            type: PathPrefix
+            value: /api
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: backend-1
+  annotations:
+    gateway.envoyproxy.io/foo: bar111222333444
+  labels:
+    env: production2
 spec:
   parentRefs:
     - name: eg
@@ -115,4 +130,19 @@ spec:
       matches:
         - path:
             type: PathPrefix
-            value: /
+            value: /app
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: do-not-use-example-envoyproxy-logging-config
+  # namespace: envoy-gateway-system
+spec:
+  logging:
+    level:
+      # default: debug
+      # http2: debug
+      #jwt: trace
+      #grpc: critical
+      # ext_authz: trace
+      ext_proc: debug

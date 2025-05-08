@@ -61,10 +61,10 @@ const (
 	usagePolicyMetadataKey                          string = "ratelimit:usage-policy"
 	organizationMetadataKey                         string = "ratelimit:organization"
 	orgAndRLPolicyMetadataKey                       string = "ratelimit:organization-and-rlpolicy"
-	extractTokenFromMetadataKey                     string = "aitoken:extracttokenfrom"
-	promptTokenIDMetadataKey                        string = "aitoken:prompttokenid"
-	completionTokenIDMetadataKey                    string = "aitoken:completiontokenid"
-	totalTokenIDMetadataKey                         string = "aitoken:totaltokenid"
+	extractTokenFromMetadataKey                     string = "extracttokenfrom"
+	promptTokenIDMetadataKey                        string = "prompttokenid"
+	completionTokenIDMetadataKey                    string = "completiontokenid"
+	totalTokenIDMetadataKey                         string = "totaltokenid"
 	matchedAPIMetadataKey                           string = "request:matchedapi"
 	matchedResourceMetadataKey                      string = "request:matchedresource"
 	matchedSubscriptionMetadataKey                  string = "request:matchedsubscription"
@@ -202,7 +202,10 @@ func (s *ExternalProcessingServer) Process(srv envoy_service_proc_v3.ExternalPro
 				},
 			}
 			s.log.Sugar().Debug("Response Body Flow")
-			s.processResponseBody(messageContext, req.GetResponseBody())
+			resp, err = s.processResponseBody(messageContext, req.GetResponseBody())
+			if err != nil {
+				s.log.Sugar().Error(err)
+			}
 		default:
 			s.log.Sugar().Debug(fmt.Sprintf("Unknown Request type %v\n", v))
 		}
@@ -242,6 +245,7 @@ func (s *ExternalProcessingServer) processgXDSRouteMetadataAttributes(data map[s
 		extractedValues := make(map[string]string)
 
 		keysToExtract := []string{
+			aiSchema,
 			pathAttribute,
 			vHostAttribute,
 			basePathAttribute,
@@ -255,38 +259,60 @@ func (s *ExternalProcessingServer) processgXDSRouteMetadataAttributes(data map[s
 			endpointBasepath,
 		}
 
-		for _, key := range keysToExtract {
-			if field, exists := structData.FilterMetadata["envoy.filters.http.ext_proc"]; exists {
-				extractedValues[key] = field.Fields[key].GetStringValue()
-				// case condition to populate ExternalProcessingEnvoyAttributes
-				switch key {
-				case pathAttribute:
-					messageContext.Path = extractedValues[key]
-				case vHostAttribute:
-					messageContext.VHost = extractedValues[key]
-				case basePathAttribute:
-					messageContext.BasePath = extractedValues[key]
-				case methodAttribute:
-					messageContext.Method = extractedValues[key]
-				case apiVersionAttribute:
-					messageContext.APIVersion = extractedValues[key]
-				case apiNameAttribute:
-					messageContext.APIName = extractedValues[key]
-				case clusterNameAttribute:
-					messageContext.ClusterName = extractedValues[key]
-				case enableBackendBasedAIRatelimitAttribute:
-					messageContext.EnableBackendBasedAIRatelimit = extractedValues[key]
-				case backendBasedAIRatelimitDescriptorValueAttribute:
-					messageContext.BackendBasedAIRatelimitDescriptorValue = extractedValues[key]
-				case suspendAIModelValueAttribute:
-					messageContext.SuspendAIModel = extractedValues[key]
-				case endpointBasepath:
-					messageContext.EndpointBasepath = extractedValues[key]
-				case aiSchema:
-					messageContext.AISchema = extractedValues[key]
+		if fieldEnvoyGateway, exists := structData.FilterMetadata["envoy-gateway"]; exists {
+			if fieldEnvoyGatewayResources, exists := fieldEnvoyGateway.Fields["resources"]; exists {
+				// `resources` is expected to be a list
+				if resourcesList := fieldEnvoyGatewayResources.GetListValue(); resourcesList != nil {
+					for _, resource := range resourcesList.Values {
+						resourceStruct := resource.GetStructValue()
+						if resourceStruct == nil {
+							continue
+						}
+						// Check if annotations exist
+						if annotationsField, exists := resourceStruct.Fields["annotations"]; exists {
+							if annotationsStruct := annotationsField.GetStructValue(); annotationsStruct != nil {
+								
+								for _, key := range keysToExtract {
+									s.log.Sugar().Debugf("Key: %s", key)
+									if field, exists := annotationsStruct.Fields[key]; exists {
+										s.log.Sugar().Debugf("Field: %s", field)
+										extractedValues[key] = field.GetStringValue()
+										switch key {
+										case pathAttribute:
+											messageContext.Path = extractedValues[key]
+										case vHostAttribute:
+											messageContext.VHost = extractedValues[key]
+										case basePathAttribute:
+											messageContext.BasePath = extractedValues[key]
+										case methodAttribute:
+											messageContext.Method = extractedValues[key]
+										case apiVersionAttribute:
+											messageContext.APIVersion = extractedValues[key]
+										case apiNameAttribute:
+											messageContext.APIName = extractedValues[key]
+										case clusterNameAttribute:
+											messageContext.ClusterName = extractedValues[key]
+										case enableBackendBasedAIRatelimitAttribute:
+											messageContext.EnableBackendBasedAIRatelimit = extractedValues[key]
+										case backendBasedAIRatelimitDescriptorValueAttribute:
+											messageContext.BackendBasedAIRatelimitDescriptorValue = extractedValues[key]
+										case suspendAIModelValueAttribute:
+											messageContext.SuspendAIModel = extractedValues[key]
+										case endpointBasepath:
+											messageContext.EndpointBasepath = extractedValues[key]
+										case aiSchema:
+											messageContext.AISchema = extractedValues[key]
+										}
+									}
+								}
+								
+							}
+						}
+					}
 				}
 			}
 		}
+		s.log.Sugar().Debugf("Message Context: %+v", messageContext)
 		// Return the populated struct
 		return nil
 	}
@@ -302,7 +328,7 @@ func (s *ExternalProcessingServer) processRequestHeader(messageContxt *dto.Messa
 	messageContxt.RequestHeaders = make(map[string]string)
 	for _, header := range headers.GetHeaders() {
 		key := header.GetKey()
-		value := header.GetValue()
+		value := string(header.GetRawValue())
 		messageContxt.RequestHeaders[key] = value
 		s.log.Sugar().Debug(fmt.Sprintf("Header: %s, Value: %s", key, value))
 	}
@@ -317,7 +343,7 @@ func (s *ExternalProcessingServer) processResponseHeader(messageContxt *dto.Mess
 	messageContxt.ResponseHeaders = make(map[string]string)
 	for _, header := range headers.GetHeaders() {
 		key := header.GetKey()
-		value := header.GetValue()
+		value := string(header.GetRawValue())
 		if key == "Content-Encoding" {
 			messageContxt.ResponseEncoding = value
 		}
@@ -391,6 +417,7 @@ func (s *ExternalProcessingServer) processResponseBody(messageContxt *dto.Messag
 			},
 		},
 	}
+	s.log.Sugar().Debug(fmt.Sprintf("Prepared metadata: %s", metadata))
 	return resp, nil
 }
 

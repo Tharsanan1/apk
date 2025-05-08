@@ -39,6 +39,9 @@ spec:
           volumeMounts:
             - name: grpc-ext-proc-secret
               mountPath: /home/wso2/certs
+          env:
+            - name: LOG_LEVEL
+              value: DEBUG
           # readinessProbe:
           #   httpGet:
           #     path: /healthz
@@ -137,9 +140,16 @@ spec:
     - name: grpc-ext-proc
       port: 9002
     processingMode:
-      request: {}
+      request: 
+        attributes:
+          - "xds.route_metadata"
       response: 
         body: Streamed 
+    metadata:
+      writableNamespaces:
+        - com.wso2.bijira.ai_gateway
+      accessibleNamespaces:
+        - com.wso2.bijira.ai_gateway
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
@@ -149,9 +159,107 @@ metadata:
 spec:
   logging:
     level:
-      # default: debug
+      default: debug
       # http2: debug
       #jwt: trace
       #grpc: critical
       # ext_authz: trace
+      # ratelimit: debug
       ext_proc: debug
+---
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: redis-system 
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: redis-system
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - image: redis:6.0.6
+        imagePullPolicy: IfNotPresent
+        name: redis
+        resources:
+          limits:
+            cpu: 1500m
+            memory: 512Mi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: redis-system 
+  labels:
+    app: redis
+  annotations:
+spec:
+  ports:
+  - name: redis
+    port: 6379
+    protocol: TCP
+    targetPort: 6379
+  selector:
+    app: redis
+---
+# apiVersion: gateway.envoyproxy.io/v1alpha1
+# kind: BackendTrafficPolicy 
+# metadata:
+#   name: policy-httproute
+# spec:
+#   targetRefs:
+#   - name: backend
+#     kind: HTTPRoute
+#     group: gateway.networking.k8s.io
+#   rateLimit:
+#     type: Global
+#     global:
+#       rules:
+#       - limit:
+#           requests: 3
+#           unit: Hour
+---
+
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: airatelimit
+spec:
+  targetRefs:
+    - name: backend
+      kind: HTTPRoute
+      group: gateway.networking.k8s.io
+  rateLimit:
+    type: Global
+    global:
+      rules:
+        - limit:
+            requests: 1000    # 1000 total tokens per hour
+            unit: Hour
+          cost:
+            request:
+              from: Number
+              number: 0      # Set to 0 so only token usage counts
+            response:
+              # from: Number
+              # number: 2 
+              from: Metadata
+              metadata:
+                namespace: com.wso2.bijira.ai_gateway
+                key: totaltokenid    # Uses total tokens from the responses
