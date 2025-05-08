@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 )
 
@@ -53,6 +54,20 @@ func LoadCertificates(publicKeyPath, privateKeyPath string) (tls.Certificate, er
 
 // 	return certPool, nil
 // }
+
+// LoadCACertificate loads a CA certificate from the provided file path.
+// It reads the certificate file and appends it to a new CertPool.
+// If any error occurs during reading or appending, it returns an error.
+// This function is useful for loading a single CA certificate for TLS connections.
+func LoadCACertificate(caCertPath string) (*x509.CertPool, error) {
+	ca := x509.NewCertPool()
+	caCert, err := os.ReadFile(caCertPath)
+	if err != nil {
+		return nil, fmt.Errorf("could not read ca certificate: %s", err)
+	}
+	ca.AppendCertsFromPEM(caCert)
+	return ca, nil
+}
 
 // LoadCACertificates loads all CA certificates from the provided folder path.
 // It reads all .pem or .crt files in the folder and appends them to a new CertPool.

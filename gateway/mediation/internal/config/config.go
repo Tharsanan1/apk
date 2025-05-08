@@ -27,15 +27,16 @@ import (
 
 // Server holds the configuration parameters for the application.
 type Server struct {
-	TrustDefaultCerts                string `envconfig:"TRUST_DEFAULT_CERTS" default:"true"`
-	MediationServerPrivateKeyPath    string `envconfig:"MEDIATION_SERVER_PRIVATE_KEY_PATH" default:"/home/wso2/certs/server.key"`
-	MediationServerPublicKeyPath     string `envconfig:"MEDIATION_SERVER_PUBLIC_CERT_PATH" default:"/home/wso2/certs/server.crt"`
-	LogLevel                         string `envconfig:"LOG_LEVEL" default:"INFO"`
-	ExternalProcessingPort           string `envconfig:"EXTERNAL_PROCESSING_PORT" default:"9002"`
-	ExternalProcessingKeepAliveTime  int    `envconfig:"EXTERNAL_PROCESSING_KEEP_ALIVE_TIME" default:"600"`
-	ExternalProcessingMaxMessageSize int    `envconfig:"EXTERNAL_PROCESSING_MAX_MESSAGE_SIZE" default:"1000000000"`
-	ExternalProcessingMaxHeaderLimit int    `envconfig:"EXTERNAL_PROCESSING_MAX_HEADER_LIMIT" default:"8192"`
-	Logger                           logging.Logger
+	TrustDefaultCerts                 string `envconfig:"TRUST_DEFAULT_CERTS" default:"true"`
+	MediationServerPrivateKeyPath     string `envconfig:"MEDIATION_SERVER_PRIVATE_KEY_PATH" default:"/home/wso2/certs/server.key"`
+	MediationServerPublicKeyPath      string `envconfig:"MEDIATION_SERVER_PUBLIC_CERT_PATH" default:"/home/wso2/certs/server.crt"`
+	LogLevel                          string `envconfig:"LOG_LEVEL" default:"INFO"`
+	ExternalProcessingPort            string `envconfig:"EXTERNAL_PROCESSING_PORT" default:"9002"`
+	ExternalProcessingHealthCheckPort string `envconfig:"EXTERNAL_PROCESSING_HEALTH_CHECK_PORT" default:"8080"`
+	ExternalProcessingKeepAliveTime   int    `envconfig:"EXTERNAL_PROCESSING_KEEP_ALIVE_TIME" default:"600"`
+	ExternalProcessingMaxMessageSize  int    `envconfig:"EXTERNAL_PROCESSING_MAX_MESSAGE_SIZE" default:"1000000000"`
+	ExternalProcessingMaxHeaderLimit  int    `envconfig:"EXTERNAL_PROCESSING_MAX_HEADER_LIMIT" default:"8192"`
+	Logger                            logging.Logger
 }
 
 // package-level variable and mutex for thread safety

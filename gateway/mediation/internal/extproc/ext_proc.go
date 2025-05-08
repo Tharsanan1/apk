@@ -20,9 +20,12 @@ package extproc
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"time"
 
 	corev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -34,6 +37,8 @@ import (
 	"github.com/wso2/apk/gateway/mediation/internal/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+
 	// "google.golang.org/grpc/health"
 	// "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/keepalive"
@@ -78,6 +83,7 @@ const (
 // It contains a logger for logging purposes.
 type ExternalProcessingServer struct {
 	log logging.Logger
+	cfg *config.Server
 }
 
 // StartExternalProcessingServer initializes and starts the external processing server.
@@ -104,16 +110,82 @@ func StartExternalProcessingServer(cfg *config.Server) {
 	}
 
 	// grpc_health_v1.RegisterHealthServer(server, health.NewServer())
-	cfg.Logger.Info("Health check added.....")
-	envoy_service_proc_v3.RegisterExternalProcessorServer(server,
-		&ExternalProcessingServer{cfg.Logger,})
+	eps := &ExternalProcessingServer{cfg.Logger, cfg}
+	envoy_service_proc_v3.RegisterExternalProcessorServer(server, eps)
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", cfg.ExternalProcessingPort))
 	if err != nil {
 		cfg.Logger.Error(err, fmt.Sprintf("Failed to listen on port: %s", cfg.ExternalProcessingPort))
 	}
 	cfg.Logger.Info(fmt.Sprintf("Starting to serve external processing server on port: %s", cfg.ExternalProcessingPort))
-	if err := server.Serve(listener); err != nil {
-		cfg.Logger.Error(err, "Failed to serve grpc server")
+	go func() {
+		if err := server.Serve(listener); err != nil {
+			cfg.Logger.Error(err, "Failed to serve grpc server")
+		}
+	}()
+	go func ()  {
+		http.HandleFunc("/healthz", eps.healthCheckHandler)
+		err = http.ListenAndServe(fmt.Sprintf(":%s", cfg.ExternalProcessingHealthCheckPort), nil)
+		if err != nil {
+			cfg.Logger.Sugar().Fatalf("failed to serve: %v", err)
+		}
+	}()
+	
+}
+
+// used by k8s readiness probes
+// makes a processing request to check if the processor service is healthy
+func (s *ExternalProcessingServer) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	certPool, err := util.LoadCACertificate(s.cfg.MediationServerPublicKeyPath)
+	if err != nil {
+		s.cfg.Logger.Sugar().Fatalf("Could not load CA certificate: %v", err)
+	}
+
+	// Create TLS configuration
+	tlsConfig := &tls.Config{
+		RootCAs: certPool,
+		ServerName: "grpc-ext-proc.envoygateway",
+	}
+
+	// Create gRPC dial options
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
+	}
+
+	conn, err := grpc.Dial(fmt.Sprintf("localhost:%s", s.cfg.ExternalProcessingPort), opts...)
+	if err != nil {
+		s.cfg.Logger.Sugar().Fatalf("Could not connect: %v", err)
+	}
+	client := envoy_service_proc_v3.NewExternalProcessorClient(conn)
+
+	processor, err := client.Process(context.Background())
+	if err != nil {
+		s.cfg.Logger.Sugar().Fatalf("Could not check: %v", err)
+	}
+
+	err = processor.Send(&envoy_service_proc_v3.ProcessingRequest{
+		Request: &envoy_service_proc_v3.ProcessingRequest_RequestHeaders{
+			RequestHeaders: &envoy_service_proc_v3.HttpHeaders{},
+		},
+	})
+	if err != nil {
+		s.cfg.Logger.Sugar().Fatalf("Could not check: %v", err)
+	}
+
+	response, err := processor.Recv()
+	if err != nil {
+		s.cfg.Logger.Sugar().Fatalf("Could not check: %v", err)
+	}
+
+	if response != nil && response.GetRequestHeaders().Response.Status == envoy_service_proc_v3.CommonResponse_CONTINUE {
+		s.cfg.Logger.Sugar().Debug("Health check passed")
+		w.WriteHeader(http.StatusOK)
+	} else {
+		if response != nil {
+			s.cfg.Logger.Sugar().Errorf("Health check failed: %v", response.GetRequestHeaders().Response.Status)
+		} else {
+			s.cfg.Logger.Sugar().Error("Health check failed: no response")
+		}
+		w.WriteHeader(http.StatusServiceUnavailable)
 	}
 }
 

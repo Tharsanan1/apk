@@ -35,6 +35,7 @@ spec:
           args: ["./mediation"]
           ports:
             - containerPort: 8000
+            - containerPort: 8080
             - containerPort: 9002
           volumeMounts:
             - name: grpc-ext-proc-secret
@@ -42,10 +43,10 @@ spec:
           env:
             - name: LOG_LEVEL
               value: DEBUG
-          # readinessProbe:
-          #   httpGet:
-          #     path: /healthz
-          #     port: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
       volumes:
         - name: grpc-ext-proc
           configMap:
